@@ -1,0 +1,11 @@
+/* NOVA AI - App-level styles reset */
+/* All design is handled by Tailwind CSS + index.css utility classes */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
