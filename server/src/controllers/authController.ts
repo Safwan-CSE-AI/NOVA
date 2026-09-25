@@ -18,9 +18,22 @@ export const LoginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-function generateToken(userId: string): string {
+export function generateToken(user: any): string {
   const secret = process.env.JWT_SECRET || 'nova_default_jwt_secret_personalization';
-  return jwt.sign({ userId }, secret, { expiresIn: '7d' });
+  const userId = user._id ? user._id.toString() : user.id;
+  return jwt.sign(
+    {
+      userId,
+      email: user.email,
+      name: user.name,
+      goal: user.goal,
+      energyLevel: user.energyLevel,
+      preferredStyle: user.preferredStyle,
+      isDemoUser: Boolean(user.isDemoUser),
+    },
+    secret,
+    { expiresIn: '7d' }
+  );
 }
 
 export async function register(req: Request, res: Response): Promise<void> {
@@ -48,7 +61,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       learningBio: '',
     });
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user);
 
     res.status(201).json({
       success: true,
@@ -89,7 +102,7 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user);
 
     res.status(200).json({
       success: true,

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const OnboardingPage: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, demoLogin } = useAuth();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -81,7 +81,31 @@ export const OnboardingPage: React.FC = () => {
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-500/30 bg-red-950/30 p-3 text-xs text-red-300">
-            {error}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span>{error}</span>
+              {(error.toLowerCase().includes('token') || error.toLowerCase().includes('auth') || error.toLowerCase().includes('session')) && (
+                <div className="flex items-center gap-2 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/login')}
+                    className="underline text-indigo-300 hover:text-white cursor-pointer"
+                  >
+                    Sign In
+                  </button>
+                  <span className="text-zinc-500">•</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await demoLogin();
+                      navigate('/dashboard');
+                    }}
+                    className="underline text-violet-300 hover:text-white cursor-pointer"
+                  >
+                    Demo Mode
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

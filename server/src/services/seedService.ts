@@ -331,7 +331,19 @@ export class SeedService {
     // Return user with signed JWT
     const jwt = await import('jsonwebtoken');
     const secret = process.env.JWT_SECRET || 'nova_default_jwt_secret_personalization';
-    const token = jwt.default.sign({ userId: user._id.toString() }, secret, { expiresIn: '7d' });
+    const token = jwt.default.sign(
+      {
+        userId: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        goal: user.goal,
+        energyLevel: user.energyLevel,
+        preferredStyle: user.preferredStyle,
+        isDemoUser: true,
+      },
+      secret,
+      { expiresIn: '7d' }
+    );
 
     return { user, token };
   }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, setAuthToken } from '../services/api';
 
 export interface User {
   id: string;
@@ -37,26 +37,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('nova_user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('nova_jwt'));
+  const [token, setToken] = useState<string | null>(() => {
+    const saved = localStorage.getItem('nova_jwt');
+    if (saved) setAuthToken(saved);
+    return saved;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const refreshUser = async () => {
     try {
-      if (!localStorage.getItem('nova_jwt')) {
+      const savedToken = localStorage.getItem('nova_jwt');
+      if (!savedToken) {
         setUser(null);
         setIsLoading(false);
         return;
       }
+      setAuthToken(savedToken);
       const data = await api.auth.getMe();
       if (data.success && data.user) {
         setUser(data.user);
         localStorage.setItem('nova_user', JSON.stringify(data.user));
       }
     } catch {
-      localStorage.removeItem('nova_jwt');
-      localStorage.removeItem('nova_user');
-      setUser(null);
-      setToken(null);
+      // Don't wipe session if on onboarding or transient glitch
+      console.warn('Silent refreshUser notice');
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const data = await api.auth.login({ email, password });
     if (data.success) {
-      localStorage.setItem('nova_jwt', data.token);
+      setAuthToken(data.token);
       localStorage.setItem('nova_user', JSON.stringify(data.user));
       setToken(data.token);
       setUser(data.user);
@@ -79,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string) => {
     const data = await api.auth.register({ name, email, password });
     if (data.success) {
-      localStorage.setItem('nova_jwt', data.token);
+      setAuthToken(data.token);
       localStorage.setItem('nova_user', JSON.stringify(data.user));
       setToken(data.token);
       setUser(data.user);
@@ -91,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const data = await api.auth.demoLogin();
       if (data.success) {
-        localStorage.setItem('nova_jwt', data.token);
+        setAuthToken(data.token);
         localStorage.setItem('nova_user', JSON.stringify(data.user));
         setToken(data.token);
         setUser(data.user);
@@ -102,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('nova_jwt');
+    setAuthToken(null);
     localStorage.removeItem('nova_user');
     setToken(null);
     setUser(null);

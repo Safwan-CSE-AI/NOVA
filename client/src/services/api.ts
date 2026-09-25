@@ -5,8 +5,23 @@ export interface ApiError {
   details?: string[];
 }
 
+let inMemoryToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  inMemoryToken = token;
+  if (token) {
+    try {
+      localStorage.setItem('nova_jwt', token);
+    } catch {}
+  } else {
+    try {
+      localStorage.removeItem('nova_jwt');
+    } catch {}
+  }
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('nova_jwt');
+  const token = localStorage.getItem('nova_jwt') || inMemoryToken;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -35,9 +50,15 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
 
     if (!res.ok) {
-      if (res.status === 401 && !endpoint.includes('/login') && !endpoint.includes('/register')) {
-        localStorage.removeItem('nova_jwt');
-        localStorage.removeItem('nova_user');
+      if (res.status === 401 && !endpoint.includes('/login') && !endpoint.includes('/register') && !endpoint.includes('/onboarding')) {
+        const errLower = (data.error || '').toLowerCase();
+        if (errLower.includes('expired') || errLower.includes('invalid authentication')) {
+          try {
+            localStorage.removeItem('nova_jwt');
+            localStorage.removeItem('nova_user');
+            inMemoryToken = null;
+          } catch {}
+        }
       }
       throw new Error(data.error || `Request failed with status ${res.status}`);
     }
