@@ -25,14 +25,21 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       headers,
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data: any = {};
+    
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      data = { error: rawText || `Server returned status ${res.status}` };
+    }
 
     if (!res.ok) {
       if (res.status === 401 && !endpoint.includes('/login') && !endpoint.includes('/register')) {
         localStorage.removeItem('nova_jwt');
         localStorage.removeItem('nova_user');
       }
-      throw new Error(data.error || `HTTP error ${res.status}`);
+      throw new Error(data.error || `Request failed with status ${res.status}`);
     }
 
     return data;
