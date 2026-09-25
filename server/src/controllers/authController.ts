@@ -58,18 +58,18 @@ export async function register(req: Request, res: Response): Promise<void> {
         id: user._id,
         name: user.name,
         email: user.email,
-        goal: user.goal,
-        availableTime: user.availableTime,
-        energyLevel: user.energyLevel,
-        preferredStyle: user.preferredStyle,
-        focusDuration: user.focusDuration,
-        preferredDifficulty: user.preferredDifficulty,
-        isOnboarded: user.isOnboarded,
+        goal: user.goal || 'Master key concepts through personalized learning',
+        availableTime: user.availableTime || '2 hours',
+        energyLevel: user.energyLevel || 'Medium',
+        preferredStyle: user.preferredStyle || 'Practical',
+        focusDuration: user.focusDuration || 25,
+        preferredDifficulty: user.preferredDifficulty || 'Medium',
+        isOnboarded: user.isOnboarded || false,
       },
     });
   } catch (error: any) {
     console.error('Registration error:', error);
-    res.status(500).json({ success: false, error: 'Server error during registration' });
+    res.status(500).json({ success: false, error: error.message || 'Server error during registration' });
   }
 }
 

@@ -16,6 +16,14 @@ export class InMemDoc {
     this.updatedAt = new Date();
     return this;
   }
+
+  toObject(): any {
+    return { ...this };
+  }
+
+  toJSON(): any {
+    return { ...this };
+  }
 }
 
 export class InMemoryCollection {

@@ -15,41 +15,31 @@ export async function connectDB(): Promise<void> {
 
   const uri = process.env.MONGODB_URI;
   const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  const isValidMongoUri = Boolean(uri && (uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://')));
 
-  // If on Vercel and no external MongoDB URI is configured (or if URI is localhost), use in-memory store immediately
-  if (isVercel && (!uri || uri.includes('127.0.0.1') || uri.includes('localhost'))) {
-    console.log('[DB] ⚡ Vercel Serverless environment detected without external MongoDB. Activating instant In-Memory store.');
+  // If on Vercel or environment without a valid MongoDB connection string, use instant in-memory store
+  if (!isValidMongoUri || isVercel && (uri?.includes('127.0.0.1') || uri?.includes('localhost'))) {
+    console.log('[DB] ⚡ Activating instant In-Memory store (zero configuration needed).');
     isUsingMemoryDB = true;
     (global as any).isInMemoryDB = true;
     return;
   }
 
   // If a real external MongoDB URI is provided (e.g. MongoDB Atlas)
-  if (uri && !uri.includes('127.0.0.1') && !uri.includes('localhost')) {
+  if (isValidMongoUri) {
     try {
       console.log('[DB] Connecting to external MongoDB database...');
-      await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: 4000,
+      await mongoose.connect(uri!, {
+        serverSelectionTimeoutMS: 3000,
       });
       console.log('[DB] ✅ Successfully connected to MongoDB database');
       isUsingMemoryDB = false;
       return;
     } catch (err: any) {
       console.warn(`[DB] External MongoDB connection failed (${err.message}). Falling back to In-Memory store.`);
-    }
-  }
-
-  // Local development fallback
-  if (!isVercel && uri) {
-    try {
-      await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: 1500,
-      });
-      console.log('[DB] ✅ Connected to local MongoDB');
-      isUsingMemoryDB = false;
+      isUsingMemoryDB = true;
+      (global as any).isInMemoryDB = true;
       return;
-    } catch {
-      // Local Mongo not running
     }
   }
 

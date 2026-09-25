@@ -21,14 +21,15 @@ app.use(cors({
 app.use(express.json());
 
 // Ensure DB connection before processing requests (especially for serverless environments)
-let isConnected = false;
+let isInitialized = false;
 app.use(async (_req, _res, next) => {
-  if (!isConnected) {
+  if (!isInitialized) {
     try {
       await connectDB();
-      isConnected = true;
     } catch (e: any) {
-      console.warn('DB initialization in middleware warning:', e.message);
+      console.warn('DB initialization warning:', e.message);
+    } finally {
+      isInitialized = true;
     }
   }
   next();
@@ -36,22 +37,12 @@ app.use(async (_req, _res, next) => {
 
 // Request logger for API calls
 app.use((req, _res, next) => {
-  if (req.path.startsWith('/api')) {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  }
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/plan', planRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/learned-preferences', learnRoutes);
-app.use('/api/ai', aiRoutes);
-
-// Health check
-app.get('/api/health', (_req: Request, res: Response) => {
+// Health checks
+app.get(['/', '/api/health', '/health'], (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     service: 'NOVA AI Personalization Engine',
@@ -59,10 +50,13 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
-// 404 Handler for API routes
-app.use('/api/*', (_req: Request, res: Response) => {
-  res.status(404).json({ success: false, error: 'API endpoint not found' });
-});
+// API Routes — support both /api/* and direct prefix in case serverless gateway strips /api
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/profile', '/profile'], profileRoutes);
+app.use(['/api/plan', '/plan'], planRoutes);
+app.use(['/api/tasks', '/tasks'], taskRoutes);
+app.use(['/api/learned-preferences', '/learned-preferences'], learnRoutes);
+app.use(['/api/ai', '/ai'], aiRoutes);
 
 // Global Error Handler
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
